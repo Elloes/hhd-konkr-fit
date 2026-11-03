@@ -7,7 +7,11 @@ from threading import Event as TEvent
 from hhd.controller import DEBUG_MODE, Multiplexer
 from hhd.controller.lib.hide import unhide_all
 from hhd.controller.physical.evdev import B as EC
-from hhd.controller.physical.evdev import GenericGamepadEvdev, enumerate_evs
+from hhd.controller.physical.evdev import (
+    ChordGamepadEvdev,
+    GenericGamepadEvdev,
+    enumerate_evs,
+)
 from hhd.controller.physical.hidraw import GenericGamepadHidraw
 from hhd.controller.physical.imu import CombinedImu, HrtimerTrigger
 from hhd.controller.virtual.uinput import UInputDevice
@@ -512,13 +516,40 @@ def controller_loop(
     d_timer = HrtimerTrigger(conf["imu_hz"].to(int), [HrtimerTrigger.IMU_NAMES])
 
     # Inputs
+    face_remap = dconf.get("face_remap", False)
+
+    def remap_action(key: str, default: str):
+        # Resolve a Konkr Button Map dropdown into an output Button. The UI
+        # "disabled" option is returned as None so the key gets dropped.
+        val = conf.get(f"face_buttons.{key}", default)
+        return None if val == "disabled" else val
+
+    # By default the gamepad's BTN_MODE is repurposed as the QAM/overlay
+    # button (share). On devices where it is the main "guide" button (e.g.
+    # Konkr Fit), keep it as the XBOX default (mode) so it opens Steam.
+    xinput_btn_map = {**AYA_GAMEPAD_BTN_MAPPINGS}
+    if face_remap:
+        # The three left-side buttons come through the Xbox gamepad. Apply the
+        # user's per-button choices, dropping any set to "Disabled".
+        for code, key, default in (
+            (EC("BTN_MODE"), "btn_left_top", "mode"),
+            (EC("BTN_SELECT"), "btn_left_select", "select"),
+            (EC("BTN_START"), "btn_left_start", "start"),
+        ):
+            act = remap_action(key, default)
+            if act is None:
+                xinput_btn_map.pop(code, None)
+            else:
+                xinput_btn_map[code] = act
+    elif not dconf.get("mode_is_guide", False):
+        xinput_btn_map[EC("BTN_MODE")] = "share"
     d_xinput = GenericGamepadEvdev(
         vid=[GAMEPAD_VID],
         pid=[GAMEPAD_PID],
         capabilities={EC("EV_KEY"): [EC("BTN_A")]},
         required=True,
         hide=True,
-        btn_map=AYA_GAMEPAD_BTN_MAPPINGS,
+        btn_map=xinput_btn_map,
     )
 
     d_kbd_1 = GenericGamepadEvdev(
@@ -528,14 +559,38 @@ def controller_loop(
         grab=False,
         btn_map=dconf.get("at_btn_mapping", AYA3_AT_BTN_MAPPINGS),
     )
-    d_kbd_2 = GenericGamepadEvdev(
-        vid=[AYA_VID],
-        pid=[AYA_PID],
-        required=True,
-        grab=True,
-        capabilities={EC("EV_KEY"): [EC("KEY_F21")]},
-        btn_map=dconf.get("btn_mapping", AYA3_BTN_MAPPINGS),
-    )
+    if face_remap:
+        # The three right-side buttons come through the AYANEO composite
+        # keyboard. right-bottom-right is KEY_D; right-top (Ctrl+F23) and konkr
+        # (F23 alone) share the F23 keycode, so they are split by the chord
+        # producer using the Ctrl modifier. Paddles stay on the normal map.
+        kbd2_map = dict(dconf.get("btn_mapping", AYA3_BTN_MAPPINGS))
+        kbd2_map.pop(EC("KEY_F23"), None)  # handled by the chord below
+        kbd2_map.pop(EC("KEY_D"), None)  # remapped below
+        right_bottom = remap_action("btn_right_bottom", "hhd_qam")
+        if right_bottom is not None:
+            kbd2_map[EC("KEY_D")] = right_bottom
+        d_kbd_2 = ChordGamepadEvdev(
+            vid=[AYA_VID],
+            pid=[AYA_PID],
+            required=True,
+            grab=True,
+            capabilities={EC("EV_KEY"): [EC("KEY_F21")]},
+            btn_map=kbd2_map,
+            mod_code=EC("KEY_LEFTCTRL"),
+            plain_code=EC("KEY_F23"),
+            mod_btn=remap_action("btn_right_top", "disabled"),
+            plain_btn=remap_action("btn_konkr", "disabled"),
+        )
+    else:
+        d_kbd_2 = GenericGamepadEvdev(
+            vid=[AYA_VID],
+            pid=[AYA_PID],
+            required=True,
+            grab=True,
+            capabilities={EC("EV_KEY"): [EC("KEY_F21")]},
+            btn_map=dconf.get("btn_mapping", AYA3_BTN_MAPPINGS),
+        )
     d_volume = UInputDevice(
         name="Handheld Daemon Volume Keyboard",
         phys="phys-hhd-vbtn",

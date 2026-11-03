@@ -17,7 +17,21 @@ AYA3_BTN_MAPPINGS = {
     B("KEY_F22"): "extra_r2",
     B("KEY_L"): "extra_l1",
     B("KEY_R"): "extra_r1",
-    B("KEY_F23"): "mode",  # KONKR FIT guide button on the USB keyboard
+}
+
+# Konkr Fit (Ayaneo sub-brand). Same composite keyboard as AYANEO 3
+# (1c4f:0002) but a different physical button layout.
+# F23 is the konkr logo button (right-bottom-left); the right-top button
+# emits F23 with Ctrl held (handled by ChordGamepadEvdev). KEY_D is the
+# right-bottom-right button and is user-remappable via konkr_buttons.yml.
+KONKR_FIT_BTN_MAPPINGS = {
+    B("KEY_F24"): "keyboard",
+    B("KEY_D"): "share",
+    B("KEY_F21"): "extra_l2",
+    B("KEY_F22"): "extra_r2",
+    B("KEY_L"): "extra_l1",
+    B("KEY_R"): "extra_r1",
+    B("KEY_F23"): "mode",
 }
 
 # Physical button assignments reported for NEXT 2; the device log has no key trace.
@@ -75,7 +89,17 @@ CONFS = {
         "extra_buttons": "quad",
         "magic_modules": False,
         "rgb": True,
-        "btn_mapping": AYA3_BTN_MAPPINGS,
+        # Konkr (Ayaneo sub-brand). Same controller hw as AYANEO 3
+        # (1c4f:0002 composite + 045e:028e gamepad) but no detachable
+        # modules (no ayaneo-ec EC interface). Four extra buttons (two rear
+        # paddles + LC/RC) and BTN_MODE is the main button, so it acts as the
+        # guide/Steam button rather than the QAM/overlay button.
+        "mode_is_guide": True,
+        # Expose per-button remap dropdowns for the six system/face buttons
+        # (handled in base.py + konkr_buttons.yml). Gated so it never touches
+        # the gamepad BTN_MODE/SELECT/START on other AYANEO devices.
+        "face_remap": True,
+        "btn_mapping": KONKR_FIT_BTN_MAPPINGS,
         "at_btn_mapping": KONKR_FIT_AT_BTN_MAPPINGS,
         **AYA_DEFAULT_CONF,
     },

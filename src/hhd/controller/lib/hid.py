@@ -28,10 +28,25 @@ for lib in library_paths:
     except OSError:
         pass
 else:
-    error = "Unable to load any of the following libraries:{}".format(
-        " ".join(library_paths)
-    )
-    raise ImportError(error)
+    # Windows: the current working directory is not part of the DLL search
+    # path (Python 3.8+), so explicitly register it before retrying.
+    if os.name == "nt" and hasattr(os, "add_dll_directory"):
+        for dll_dir in {os.getcwd()}:
+            try:
+                os.add_dll_directory(dll_dir)
+            except OSError:
+                pass
+        for lib in library_paths:
+            try:
+                hidapi = ctypes.cdll.LoadLibrary(lib)
+                break
+            except OSError:
+                pass
+    if "hidapi" not in dir():
+        error = "Unable to load any of the following libraries:{}".format(
+            " ".join(library_paths)
+        )
+        raise ImportError(error)
 
 
 hidapi.hid_init()
