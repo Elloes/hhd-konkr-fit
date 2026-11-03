@@ -40,11 +40,18 @@ settings:
       hint: >-
         Resets all Handheld Daemon settings to their default values.
 
+    upstream_version:
+      type: display
+      tags: [hhd-version-display, text]
+      title: Official HHD version
+      hint: >-
+        The upstream hhd-dev/hhd release this fork is based on.
+
     version:
       type: display
       tags: [hhd-version-display, text]
-      title: Version
-      hint: "Displays the Handheld Daemon version."
+      title: Konkr Fit fork version
+      hint: "Displays the hhd-konkr-fit fork version."
 
     version_ui:
       type: display
@@ -55,18 +62,10 @@ settings:
     update_stable:
       type: action
       tags: [hhd-update-stable, verify]
-      title: Update (Stable)
+      title: Update
       hint: >-
         Updates to the latest hhd-konkr-fit fork release from its self-hosted
         channel (local install only).
-
-    update_beta:
-      type: action
-      tags: [hhd-update-beta, verify]
-      title: Update (Unstable)
-      hint: >-
-        Updates to the latest hhd-konkr-fit fork commit from git (local install
-        only).
 
     update_error:
       title: Update Error

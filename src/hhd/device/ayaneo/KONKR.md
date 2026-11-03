@@ -5,7 +5,10 @@ this in sync if the firmware or mappings change.
 
 ## Identification
 
-- DMI `product_name` = `KONKR FIT` (matched in `const.py` → `CONFS`).
+- DMI `product_name` = `KONKR FIT` (matched in `const.py` → `CONFS`;
+  `autodetect` also falls back to case-insensitive / 0-vs-O / "KONKR"
+  substring matching, so firmware name variants still resolve to this
+  device, and the matched name is logged).
 - Konkr is an AYANEO sub-brand; the controller hardware is the **same as the
   AYANEO 3**:
   - `1c4f:0002` — AYANEO COMPOSITE DEVICE (`AYA_VID`/`AYA_PID`). Carries the

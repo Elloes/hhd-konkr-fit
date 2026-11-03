@@ -43,6 +43,7 @@ from .utils import (
     GIT_HHD,
     HHD_DEV_DIR,
     HHD_UI_RELEASES_API,
+    UPSTREAM_HHD_VERSION,
     expanduser,
     fork_latest_release_source,
     get_ac_status,
@@ -397,7 +398,6 @@ def main():
                 try:
                     if "venv" not in exe_python:
                         del hhd_settings["hhd"]["settings"]["children"]["update_stable"]
-                        del hhd_settings["hhd"]["settings"]["children"]["update_beta"]
                 except Exception as e:
                     logger.warning(f"Could not hide update settings. Error:\n{e}")
 
@@ -434,7 +434,11 @@ def main():
                 try:
                     ver = get_display_version(version("hhd"))
                     conf["hhd.settings.version"] = ver
-                    logger.info(f"Handheld Daemon Version: {ver}")
+                    conf["hhd.settings.upstream_version"] = UPSTREAM_HHD_VERSION
+                    logger.info(
+                        f"Handheld Daemon Version: {ver} "
+                        f"(fork based on upstream hhd {UPSTREAM_HHD_VERSION})"
+                    )
                 except Exception:
                     pass
 
@@ -680,7 +684,6 @@ def main():
                 try:
                     if "venv" not in exe_python:
                         del hhd_settings["hhd"]["settings"]["children"]["update_stable"]
-                        del hhd_settings["hhd"]["settings"]["children"]["update_beta"]
                 except Exception as e:
                     logger.warning(f"Could not hide update settings. Error:\n{e}")
 
@@ -758,12 +761,10 @@ def main():
                 should_initialize.clear()
 
             upd_stable = conf.get("hhd.settings.update_stable", False)
-            upd_beta = conf.get("hhd.settings.update_beta", False)
 
-            if upd_stable or upd_beta:
+            if upd_stable:
                 set_log_plugin("main")
                 conf["hhd.settings.update_stable"] = False
-                conf["hhd.settings.update_beta"] = False
 
                 if ctx:
                     switch_priviledge(ctx.uid)
@@ -781,13 +782,9 @@ def main():
                                 "adjustor",
                             ]
                         )
-                        if upd_beta:
-                            # Unstable: track the fork's default branch
-                            hhd_source = GIT_HHD
-                        else:
-                            # Stable: the fork's latest release (falls back
-                            # to the fork's default branch if unresolved).
-                            hhd_source = fork_latest_release_source()
+                        # Update to the fork's latest release (falls back
+                        # to the fork's default branch if unresolved).
+                        hhd_source = fork_latest_release_source()
                         logger.info(f"Installing hhd from {hhd_source}")
                         subprocess.check_call(
                             [
@@ -802,41 +799,40 @@ def main():
                             ]
                         )
 
-                        if not upd_beta:
-                            # No beta version for the UI yet, skip updating it
-                            import json
-                            import stat
-                            import urllib.request
+                        # Also refresh the gamescope overlay UI
+                        import json
+                        import stat
+                        import urllib.request
 
-                            with urllib.request.urlopen(HHD_UI_RELEASES_API) as f:
-                                release_data = json.load(f)
+                        with urllib.request.urlopen(HHD_UI_RELEASES_API) as f:
+                            release_data = json.load(f)
 
-                            for asset in release_data["assets"]:
-                                os.makedirs(
-                                    expanduser("~/.local/bin", ctx), exist_ok=True
-                                )
-                                if "hhd-ui.AppImage" == asset["name"]:
-                                    REPORT_POINTS = 8
+                        for asset in release_data["assets"]:
+                            os.makedirs(
+                                expanduser("~/.local/bin", ctx), exist_ok=True
+                            )
+                            if "hhd-ui.AppImage" == asset["name"]:
+                                REPORT_POINTS = 8
 
-                                    def progress(idx, blockSize, total):
-                                        interval = int(
-                                            total / blockSize / REPORT_POINTS
-                                        )
-                                        if idx % interval == 0:
-                                            logger.info(
-                                                f"Downloading overlay: {100*idx*blockSize / total:.1f}%"
-                                            )
-
-                                    out_fn = expanduser("~/.local/bin/hhd-ui", ctx)
-                                    urllib.request.urlretrieve(
-                                        asset["browser_download_url"],
-                                        out_fn,
-                                        reporthook=progress,
+                                def progress(idx, blockSize, total):
+                                    interval = int(
+                                        total / blockSize / REPORT_POINTS
                                     )
+                                    if idx % interval == 0:
+                                        logger.info(
+                                            f"Downloading overlay: {100*idx*blockSize / total:.1f}%"
+                                        )
 
-                                    st = os.stat(out_fn)
-                                    os.chmod(out_fn, st.st_mode | stat.S_IEXEC)
-                                    break
+                                out_fn = expanduser("~/.local/bin/hhd-ui", ctx)
+                                urllib.request.urlretrieve(
+                                    asset["browser_download_url"],
+                                    out_fn,
+                                    reporthook=progress,
+                                )
+
+                                st = os.stat(out_fn)
+                                os.chmod(out_fn, st.st_mode | stat.S_IEXEC)
+                                break
 
                         # Set updated
                         updated = True

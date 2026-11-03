@@ -25,6 +25,9 @@ logger = logging.getLogger(__name__)
 # hhd-dev/hhd (PyPI), so fork features (Konkr Fit support) survive updates.
 FORK_REPO = "Elloes/hhd-konkr-fit"
 GIT_HHD = f"git+https://github.com/{FORK_REPO}"
+# The upstream hhd-dev/hhd release this fork is based on. Shown in the
+# settings next to the fork version.
+UPSTREAM_HHD_VERSION = "4.1.12"
 HHD_RELEASES_API = f"https://api.github.com/repos/{FORK_REPO}/releases/latest"
 # The gamescope overlay UI is a separate project, still published upstream.
 HHD_UI_RELEASES_API = "https://api.github.com/repos/hhd-dev/hhd-ui/releases/latest"

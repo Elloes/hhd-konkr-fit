@@ -1,3 +1,4 @@
+import logging
 from threading import Event, Thread
 from typing import Sequence
 
@@ -14,6 +15,8 @@ from hhd.plugins import (
 from hhd.plugins.settings import HHDSettings
 
 from .const import CONFS, DEFAULT_MAPPINGS
+
+logger = logging.getLogger(__name__)
 
 
 class AyaneoControllersPlugin(HHDPlugin):
@@ -218,7 +221,29 @@ def autodetect(existing: Sequence[HHDPlugin]) -> Sequence[HHDPlugin]:
         dmi = f.read().strip()
 
     dconf = CONFS.get(dmi, None)
-    if dconf:
-        return [AyaneoControllersPlugin(dmi, dconf)]
+    matched = dmi
+    if dconf is None:
+        # Some firmware builds report the DMI product name with slightly
+        # different spelling (e.g. zero vs. letter O, or extra prefixes in
+        # the Konkr Fit name). Fall back to case-insensitive, 0/O-equivalent
+        # matching, with a "KONKR" substring match for the Konkr Fit.
+        def norm(s: str) -> str:
+            return s.upper().replace("0", "O")
 
+        ndmi = norm(dmi)
+        for name, conf in CONFS.items():
+            nname = norm(name)
+            if ndmi == nname or (nname == "KONKR FIT" and nname in ndmi):
+                logger.warning(
+                    f"DMI product name '{dmi}' matched device '{name}' "
+                    f"via fuzzy matching."
+                )
+                dconf = conf
+                matched = name
+                break
+
+    if dconf:
+        return [AyaneoControllersPlugin(matched, dconf)]
+
+    logger.warning(f"No AYANEO device found for DMI product name '{dmi}'.")
     return []
