@@ -1,7 +1,9 @@
+import json
 import logging
 import os
 import platform
 import re
+import urllib.request
 
 from hhd.plugins.plugin import (
     Context,
@@ -18,8 +20,37 @@ from hhd.plugins.plugin import (
 
 logger = logging.getLogger(__name__)
 
-GIT_HHD = "git+https://github.com/hhd-dev/hhd"
+# This fork (hhd-konkr-fit) self-hosts its own update channel: the settings
+# "Update" buttons pull hhd from the fork below instead of upstream
+# hhd-dev/hhd (PyPI), so fork features (Konkr Fit support) survive updates.
+FORK_REPO = "Elloes/hhd-konkr-fit"
+GIT_HHD = f"git+https://github.com/{FORK_REPO}"
+HHD_RELEASES_API = f"https://api.github.com/repos/{FORK_REPO}/releases/latest"
+# The gamescope overlay UI is a separate project, still published upstream.
+HHD_UI_RELEASES_API = "https://api.github.com/repos/hhd-dev/hhd-ui/releases/latest"
 HHD_DEV_DIR = "/run/hhd/dev"
+
+
+def fork_latest_release_source(fallback: str | None = None) -> str:
+    """Return a pip-installable git source pointing at the fork's latest release.
+
+    Queries the fork's GitHub releases API for the newest tag and pins the
+    git install to it. Falls back to the fork's default branch (``GIT_HHD``)
+    when the API is unreachable or the fork has no published release yet.
+    """
+    if fallback is None:
+        fallback = GIT_HHD
+    try:
+        with urllib.request.urlopen(HHD_RELEASES_API, timeout=15) as f:
+            tag = json.load(f)["tag_name"]
+        logger.info(f"Resolving hhd-konkr-fit stable update to release tag {tag}")
+        return f"{GIT_HHD}@{tag}"
+    except Exception as e:
+        logger.warning(
+            f"Could not resolve the latest hhd-konkr-fit release ({e}); "
+            f"falling back to the fork's default branch."
+        )
+        return fallback
 
 GIT_VERSION_RE = re.compile(r"^(.+\+git\.\d+)\.g?[0-9a-fA-F]+$")
 

@@ -1,11 +1,11 @@
 Name:           hhd
-Version:        4.1.12
+Version:        1.0
 Release:        1%{?dist}
 Summary:        Handheld Daemon, a tool for configuring handheld devices.
 
 License:        LGPL-2.1-or-later
-URL:            https://github.com/hhd-dev/hhd
-Source:       	https://github.com/hhd-dev/hhd/archive/refs/tags/v%{version}.tar.gz
+URL:            https://github.com/Elloes/hhd-konkr-fit
+Source:       	https://github.com/Elloes/hhd-konkr-fit/archive/refs/tags/v%{version}.tar.gz
 
 BuildArch:      noarch
 BuildRequires:  systemd-rpm-macros

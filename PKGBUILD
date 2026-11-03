@@ -1,16 +1,16 @@
 # Maintainer: Antheas Kapenekakis <aur at antheas dot dev>
 pkgname=hhd
-pkgver=4.1.12
+pkgver=1.0
 pkgrel=1
 pkgdesc='Handheld Daemon. A tool for managing the quirks of handheld devices.'
 arch=('x86_64')
-url='https://github.com/hhd-dev/hhd'
+url='https://github.com/Elloes/hhd-konkr-fit'
 license=('LGPL-2.1-or-later')
 depends=('python' 'python-setuptools' 'python-evdev' 'python-rich' 'python-yaml' 'python-xlib' 'python-dbus' 'libusb' 'python-pyserial' 'lsof'  'python-pyroute2' 'python-gobject')
 optdepends=('hhd-user: allows running hhd as a user service.')
 makedepends=('python-'{'build','installer','setuptools','wheel','babel'})
 replaces=('adjustor')
-source=("https://github.com/hhd-dev/hhd/archive/refs/tags/v${pkgver}.tar.gz")
+source=("https://github.com/Elloes/hhd-konkr-fit/archive/refs/tags/v${pkgver}.tar.gz")
 sha512sums=('SKIP')
 
 build() {

@@ -10,7 +10,7 @@ Release:        1%{?dist}
 Summary:        Handheld Daemon, a tool for configuring handheld devices.
 
 License:        LGPL-2.1-or-later
-URL:            https://github.com/hhd-dev/hhd
+URL:            https://github.com/Elloes/hhd-konkr-fit
 VCS:            git+%{URL}.git#%{commit}
 Source0:        %{URL}/archive/%{commit}/%{name}-%{commit}.tar.gz
 

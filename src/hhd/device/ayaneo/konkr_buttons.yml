@@ -2,8 +2,10 @@ type: container
 tags: [non-essential]
 title: Konkr Button Map
 hint: >-
-  Remap the six system/face buttons unique to the Konkr Fit. The sticks,
-  triggers and rear paddles stay remappable through Steam Input as usual.
+  Remap the six system/face buttons unique to the Konkr Fit, plus the two
+  rear paddles and the two inner LC/RC buttons (the latter four can also act
+  as controller face buttons). The sticks and triggers stay remappable
+  through Steam Input as usual.
 
 children:
   btn_left_top:
@@ -55,3 +57,40 @@ children:
     title: Right Bottom-Right
     options: *konkr_btn_options
     default: hhd_qam
+
+  # The rear paddles and LC/RC come through the composite keyboard (KEY_L/KEY_R
+  # and F21/F22). By default they stay the back paddles (extra_l1..r2); the
+  # face-button options let them act as A/B/X/Y. These buttons intentionally do
+  # NOT get the raw keyboard-key options the six face buttons get.
+  btn_rear_left:
+    type: multiple
+    title: Rear Left Paddle
+    options: &extra_btn_options
+      disabled: Disabled
+      extra_l1: Left Back 1
+      extra_l2: Left Back 2
+      extra_r1: Right Back 1
+      extra_r2: Right Back 2
+      a: A (bottom)
+      b: B (right)
+      x: X (left)
+      y: Y (top)
+    default: extra_l1
+
+  btn_lc:
+    type: multiple
+    title: Left Inner (LC)
+    options: *extra_btn_options
+    default: extra_l2
+
+  btn_rear_right:
+    type: multiple
+    title: Rear Right Paddle
+    options: *extra_btn_options
+    default: extra_r1
+
+  btn_rc:
+    type: multiple
+    title: Right Inner (RC)
+    options: *extra_btn_options
+    default: extra_r2

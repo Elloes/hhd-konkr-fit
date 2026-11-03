@@ -42,7 +42,9 @@ from .plugins.settings import (
 from .utils import (
     GIT_HHD,
     HHD_DEV_DIR,
+    HHD_UI_RELEASES_API,
     expanduser,
+    fork_latest_release_source,
     get_ac_status,
     get_ac_status_fn,
     get_context,
@@ -766,7 +768,7 @@ def main():
                 if ctx:
                     switch_priviledge(ctx.uid)
                 try:
-                    logger.info(f"Updating Handheld Daemon.")
+                    logger.info(f"Updating Handheld Daemon from the hhd-konkr-fit fork.")
                     if "venv" in exe_python:
                         subprocess.check_call(
                             [
@@ -779,6 +781,14 @@ def main():
                                 "adjustor",
                             ]
                         )
+                        if upd_beta:
+                            # Unstable: track the fork's default branch
+                            hhd_source = GIT_HHD
+                        else:
+                            # Stable: the fork's latest release (falls back
+                            # to the fork's default branch if unresolved).
+                            hhd_source = fork_latest_release_source()
+                        logger.info(f"Installing hhd from {hhd_source}")
                         subprocess.check_call(
                             [
                                 exe_python,
@@ -788,7 +798,7 @@ def main():
                                 "--upgrade",
                                 "--cache-dir",
                                 "/tmp/__hhd_update_cache",
-                                (GIT_HHD if upd_beta else "hhd"),
+                                hhd_source,
                             ]
                         )
 
@@ -798,9 +808,7 @@ def main():
                             import stat
                             import urllib.request
 
-                            with urllib.request.urlopen(
-                                "https://api.github.com/repos/hhd-dev/hhd-ui/releases/latest"
-                            ) as f:
+                            with urllib.request.urlopen(HHD_UI_RELEASES_API) as f:
                                 release_data = json.load(f)
 
                             for asset in release_data["assets"]:

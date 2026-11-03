@@ -56,13 +56,17 @@ settings:
       type: action
       tags: [hhd-update-stable, verify]
       title: Update (Stable)
-      hint: "Updates to the latest version from PyPi (local install only)."
+      hint: >-
+        Updates to the latest hhd-konkr-fit fork release from its self-hosted
+        channel (local install only).
 
     update_beta:
       type: action
       tags: [hhd-update-beta, verify]
       title: Update (Unstable)
-      hint: "Updates to the master branch from git (local install only)."
+      hint: >-
+        Updates to the latest hhd-konkr-fit fork commit from git (local install
+        only).
 
     update_error:
       title: Update Error

@@ -183,10 +183,10 @@ class AyaneoTest(unittest.TestCase):
             base.controller_loop(
                 conf or self.conf, stop, Event(), CONFS["KONKR FIT"], Mock(), Config()
             )
-        return inputs, chord
+        return inputs, chord, volume
 
     def test_konkr_defaults_keep_guide_and_drop_unused_chord_buttons(self):
-        inputs, chord = self.run_konkr()
+        inputs, chord, volume = self.run_konkr()
         xmap = inputs.call_args_list[0].kwargs["btn_map"]
         self.assertEqual(xmap[B("BTN_MODE")], "mode")
         self.assertEqual(xmap[B("BTN_SELECT")], "select")
@@ -219,7 +219,7 @@ class AyaneoTest(unittest.TestCase):
                 },
             }
         )
-        inputs, chord = self.run_konkr(conf)
+        inputs, chord, volume = self.run_konkr(conf)
         xmap = inputs.call_args_list[0].kwargs["btn_map"]
         self.assertEqual(xmap[B("BTN_MODE")], "steam_qam")
         self.assertNotIn(B("BTN_SELECT"), xmap)
@@ -228,6 +228,152 @@ class AyaneoTest(unittest.TestCase):
         self.assertEqual(args["mod_btn"], "hhd_qam")
         self.assertEqual(args["plain_btn"], "select")
         self.assertNotIn(B("KEY_D"), args["btn_map"])
+
+    def test_konkr_extra_buttons_default_to_paddles(self):
+        _, chord, volume = self.run_konkr()
+        m = chord.call_args.kwargs["btn_map"]
+        self.assertEqual(m[B("KEY_L")], "extra_l1")
+        self.assertEqual(m[B("KEY_F21")], "extra_l2")
+        self.assertEqual(m[B("KEY_R")], "extra_r1")
+        self.assertEqual(m[B("KEY_F22")], "extra_r2")
+        # Paddle/face-button actions are not raw keyboard keys, so no
+        # Konkr Keyboard is created for the defaults.
+        self.assertNotIn(
+            "Handheld Daemon Konkr Keyboard",
+            [c.kwargs.get("name") for c in volume.call_args_list],
+        )
+
+    def test_konkr_extra_buttons_remap_to_face_buttons(self):
+        conf = Config(
+            {
+                "controller_mode": {"mode": "xbox_elite"},
+                "imu": False,
+                "imu_hz": 400,
+                "imu_axis": {"mode": "default"},
+                "nintendo_mode": False,
+                "face_buttons": {
+                    "btn_lc": "a",
+                    "btn_rear_right": "y",
+                },
+            }
+        )
+        _, chord, volume = self.run_konkr(conf)
+        m = chord.call_args.kwargs["btn_map"]
+        self.assertEqual(m[B("KEY_F21")], "a")
+        self.assertEqual(m[B("KEY_R")], "y")
+        # The untouched buttons keep their paddle mapping.
+        self.assertEqual(m[B("KEY_L")], "extra_l1")
+        self.assertEqual(m[B("KEY_F22")], "extra_r2")
+        self.assertNotIn(
+            "Handheld Daemon Konkr Keyboard",
+            [c.kwargs.get("name") for c in volume.call_args_list],
+        )
+
+    def test_konkr_extra_button_disabled_drops_code(self):
+        conf = Config(
+            {
+                "controller_mode": {"mode": "xbox_elite"},
+                "imu": False,
+                "imu_hz": 400,
+                "imu_axis": {"mode": "default"},
+                "nintendo_mode": False,
+                "face_buttons": {
+                    "btn_rc": "disabled",
+                },
+            }
+        )
+        _, chord, _ = self.run_konkr(conf)
+        m = chord.call_args.kwargs["btn_map"]
+        self.assertNotIn(B("KEY_F22"), m)
+        self.assertEqual(m[B("KEY_L")], "extra_l1")
+
+    def test_konkr_extra_button_options_offer_face_buttons_not_keys(self):
+        s = AyaneoControllersPlugin("KONKR FIT", CONFS["KONKR FIT"]).settings()
+        kids = s["controllers"]["ayaneo"]["children"]["face_buttons"]["children"]
+        lc = kids["btn_lc"]["options"]
+        # Exactly the paddle + face-button options, no raw keyboard keys.
+        self.assertEqual(
+            set(lc),
+            {
+                "disabled",
+                "extra_l1",
+                "extra_l2",
+                "extra_r1",
+                "extra_r2",
+                "a",
+                "b",
+                "x",
+                "y",
+            },
+        )
+        self.assertEqual(lc["a"], "A (bottom)")
+        self.assertEqual(lc["y"], "Y (top)")
+        self.assertEqual(lc["extra_l2"], "Left Back 2")
+        # The face buttons get the extra raw-keyboard entries on top of
+        # their yml options.
+        self.assertGreater(len(kids["btn_left_top"]["options"]), len(lc))
+
+    def test_konkr_raw_key_remap_creates_virtual_keyboard(self):
+        conf = Config(
+            {
+                "controller_mode": {"mode": "xbox_elite"},
+                "imu": False,
+                "imu_hz": 400,
+                "imu_axis": {"mode": "default"},
+                "nintendo_mode": False,
+                "face_buttons": {
+                    "btn_left_top": "KEY_INSERT",
+                    "btn_left_select": "select",
+                    "btn_right_top": "KEY_DELETE",
+                },
+            }
+        )
+        inputs, chord, volume = self.run_konkr(conf)
+        # The raw keys pass through the producers as button codes...
+        xmap = inputs.call_args_list[0].kwargs["btn_map"]
+        self.assertEqual(xmap[B("BTN_MODE")], "KEY_INSERT")
+        self.assertEqual(chord.call_args.kwargs["mod_btn"], "KEY_DELETE")
+        # ...so they need a dedicated virtual keyboard advertising them.
+        konkr_calls = [
+            c.kwargs
+            for c in volume.call_args_list
+            if c.kwargs.get("name") == "Handheld Daemon Konkr Keyboard"
+        ]
+        self.assertEqual(len(konkr_calls), 1)
+        kbd = konkr_calls[0]
+        self.assertEqual(
+            kbd["capabilities"], {B("EV_KEY"): ["KEY_DELETE", "KEY_INSERT"]}
+        )
+        self.assertEqual(
+            kbd["btn_map"],
+            {"KEY_DELETE": B("KEY_DELETE"), "KEY_INSERT": B("KEY_INSERT")},
+        )
+        self.assertEqual(kbd["vid"], 0x0001)
+        self.assertEqual(kbd["pid"], 0x0001)
+
+    def test_konkr_without_raw_keys_creates_no_virtual_keyboard(self):
+        _, _, volume = self.run_konkr()
+        self.assertNotIn(
+            "Handheld Daemon Konkr Keyboard",
+            [c.kwargs.get("name") for c in volume.call_args_list],
+        )
+
+    def test_konkr_virtual_keyboard_emits_raw_key_events(self):
+        dev = Mock()
+        kbd = base.UInputDevice(
+            name="Handheld Daemon Konkr Keyboard",
+            phys="phys-hhd-konkr-kbd",
+            capabilities={B("EV_KEY"): ["KEY_INSERT"]},
+            btn_map={"KEY_INSERT": B("KEY_INSERT")},
+            vid=0x0001,
+            pid=0x0001,
+        )
+        kbd.dev = dev
+        kbd.consume([{"type": "button", "code": "KEY_INSERT", "value": 1}])
+        dev.write.assert_called_with(B("EV_KEY"), B("KEY_INSERT"), 1)
+        dev.syn.assert_called_once()
+        kbd.consume([{"type": "button", "code": "KEY_INSERT", "value": 0}])
+        dev.write.assert_called_with(B("EV_KEY"), B("KEY_INSERT"), 0)
 
     @staticmethod
     def key(code, value):

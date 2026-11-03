@@ -1,11 +1,11 @@
 [project]
 name = "hhd"
-version = "4.1.12"
+version = "1.0"
 authors = [
   { name="Kapenekakis Antheas", email="pypi@antheas.dev" },
 ]
-description = "Handheld Daemon, a tool for configuring handheld devices."
-readme = "readme.md"
+description = "Handheld Daemon, a tool for configuring handheld devices. Konkr Fit fork."
+readme = "README.md"
 requires-python = ">=3.10"
 license = {text = "LGPL-2.1-or-later"}
 classifiers = [
@@ -27,8 +27,8 @@ dependencies = [
 ]
 
 [project.urls]
-"Homepage" = "https://github.com/hhd-dev/hhd"
-"Bug Tracker" = "https://github.com/hhd-dev/hhd/issues"
+"Homepage" = "https://github.com/Elloes/hhd-konkr-fit"
+"Bug Tracker" = "https://github.com/Elloes/hhd-konkr-fit/issues"
 
 [project.entry-points."console_scripts"]
 hhd = "hhd.__main__:main"

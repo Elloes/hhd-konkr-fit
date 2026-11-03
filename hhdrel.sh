@@ -38,7 +38,7 @@ hhdrel ()
   git commit -m "bump to $relver"
   git tag -f $tag && git push origin $tag -f
 ) &&
-  xdg-open "https://github.com/hhd-dev/hhd/releases/new?tag=$tag"
+  xdg-open "https://github.com/Elloes/hhd-konkr-fit/releases/new?tag=$tag"
 }
 
 hhdrel $1

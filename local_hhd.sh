@@ -7,7 +7,7 @@ sudo pkill hhd
 rm -rf ~/.local/share/hhd-tmp
 mkdir -p ~/.local/share/hhd-tmp
 python -m venv --system-site-packages ~/.local/share/hhd-tmp/venv
-~/.local/share/hhd-tmp/venv/bin/pip install git+https://github.com/hhd-dev/adjustor git+https://github.com/hhd-dev/hhd
+~/.local/share/hhd-tmp/venv/bin/pip install git+https://github.com/hhd-dev/adjustor git+https://github.com/Elloes/hhd-konkr-fit
 
 FINAL_URL='https://api.github.com/repos/hhd-dev/hhd-ui/releases/latest'
 curl -L $(curl -s "${FINAL_URL}" | grep "browser_download_url" | cut -d '"' -f 4) -o $HOME/.local/share/hhd-tmp/hhd-ui

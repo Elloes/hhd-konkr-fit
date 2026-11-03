@@ -7,6 +7,6 @@ sudo pkill hhd
 rm -rf ~/.local/share/hhd-tmp
 mkdir -p ~/.local/share/hhd-tmp
 python -m venv --system-site-packages ~/.local/share/hhd-tmp/venv
-~/.local/share/hhd-tmp/venv/bin/pip install git+https://github.com/hhd-dev/adjustor git+https://github.com/hhd-dev/hhd
+~/.local/share/hhd-tmp/venv/bin/pip install git+https://github.com/hhd-dev/adjustor git+https://github.com/Elloes/hhd-konkr-fit
 
 sudo ~/.local/share/hhd-tmp/venv/bin/hhd --user $(whoami)

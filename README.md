@@ -1,19 +1,27 @@
 <h1 align="center">
     <picture>
-        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/hhd-dev/hhd/master/art/logo_dark.svg" width="50%">
-        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/hhd-dev/hhd/master/art/logo_light.svg" width="50%">
-        <img alt="Handheld Daemon Logo." src="https://raw.githubusercontent.com/hhd-dev/hhd/master/art/logo_light.svg" width="50%">
+        <source media="(prefers-color-scheme: dark)" srcset="https://raw.githubusercontent.com/Elloes/hhd-konkr-fit/master/art/logo_dark.svg" width="50%">
+        <source media="(prefers-color-scheme: light)" srcset="https://raw.githubusercontent.com/Elloes/hhd-konkr-fit/master/art/logo_light.svg" width="50%">
+        <img alt="Handheld Daemon Logo." src="https://raw.githubusercontent.com/Elloes/hhd-konkr-fit/master/art/logo_light.svg" width="50%">
     </picture>
 </h1>
 
-[![PyPI package version](https://badge.fury.io/py/hhd.svg)](https://pypi.org/project/hhd/)
-[![Python version 3.10+](https://img.shields.io/badge/python-3.10%2B-informational.svg)](https://pypi.org/project/pasteur/)
+> ## 🎮 hhd-konkr-fit — Handheld Daemon, forked for the Ayaneo Konkr Fit
+>
+> This repository is a **fork of [Handheld Daemon](https://github.com/hhd-dev/hhd) specifically optimized for the Ayaneo Konkr Fit HX370 & HX470**. It is upstream Handheld Daemon plus the fork-only changes below, with a self-hosted update channel so the "Update" button in HHD settings keeps you on this fork instead of upstream.
+>
+> **Fork features:**
+> - 🕹️ **Konkr Fit HX370/HX470 controller mapping** — full device integration: six remappable system/face buttons (any controller action, Steam/system keyboard, a raw keyboard key with a dedicated Konkr virtual keyboard, or disabled), rear paddles and LC/RC buttons remappable to face buttons (A/B/X/Y) or disabled, RGB support, and guide-button mode. See [KONKR.md](./KONKR.md).
+> - ⚡ **Konkr Fit power tuning** — HX370/HX470 power, TDP and fan handling built on the AYANEO 3 platform with Konkr-specific configuration (BTN_MODE acts as the guide/Steam button; no detachable magic modules).
+> - 📦 **Universal distro installer** — a single one-command `install.sh` that works on SteamOS, Bazzite, CachyOS, Anatase OS, and general Linux distros: it auto-detects the distro and package manager, installs missing dependencies, sets up the udev rules and the `hhd_local@` systemd service, and verifies the result — no manual steps.
+> - 🔄 **Self-hosted fork update channel** — "Update (Stable)" in HHD settings installs the latest `hhd-konkr-fit` release from this repository, and "Update (Unstable)" tracks this repository's default branch, instead of pulling from upstream PyPI.
+
+[![Python version 3.10+](https://img.shields.io/badge/python-3.10%2B-informational.svg)](https://pypi.org/project/hhd/)
 [![Code style is Black](https://img.shields.io/badge/code%20style-black-black.svg)](https://github.com/psf/black)
 [![Translations on Weblate](https://hosted.weblate.org/widget/hhd/hhd/svg-badge.svg)](https://hosted.weblate.org/engage/hhd/)
 [![Discord for Support](https://img.shields.io/discord/1451243296688181342?logo=discord)](https://discord.com/invite/QSzseNYFMF)
-<!-- [![]()]() -->
 
-# Handheld Daemon
+# Handheld Daemon (hhd-konkr-fit)
 Handheld Daemon provides hardware enablement for Windows handhelds, so that they run correctly in Linux. It acts as a vendor interface replacement (e.g., Armoury Crate equivalent), with fan curves, TDP controls, controller emulation including gyro, back buttons, and SteamOS shortcuts, and RGB remapping. All of this is through a gamescope overlay, accessible through double tapping the side menu button of the device, and a desktop app.
 
 ## Showcase
@@ -58,7 +66,8 @@ Handheld Daemon features great support for Lenovo, Asus, GPD, OneXPlayer, and Ay
 - TECTOY
   - Zeenix Pro (rebranded Loki Max)
 - Ayaneo
-  - Ayaneo 3 (full support including magic modules) 
+  - Ayaneo 3 (full support including magic modules)
+  - Konkr Fit HX370 / HX470 (this fork — full support including Konkr button remapping, see [KONKR.md](./KONKR.md))
   - Air Standard/Plus/Pro
   - 1S/1S Limited
   - 2/2S
@@ -84,12 +93,12 @@ If you want to access Handheld Daemon's expanded functionality, you should use t
 
 Unfortunately, as Handheld Daemon integrates closer with the kernel due to secure boot requirements and gamescope to provide features such as framegen, using a freefloating mainline kernel version will increasingly break devices. This is is compounded by highly complicated controller drivers that are introduced in the kernel using a Valve copyright and do not properly work.
 
-For basic desktop use, you may use the following script to install a local version of Handheld Daemon that updates independently of the system.
+For basic desktop use, use this fork's universal one-command installer. It works on SteamOS, Bazzite, CachyOS, Anatase OS, and general Linux distros, and it handles everything automatically: dependency checks and installation, udev rules/hwdb, the `hhd_local@` systemd service, the gamescope overlay UI, and post-install verification.
 ```bash
-curl -L https://github.com/hhd-dev/hhd/raw/master/install.sh | bash
+curl -L https://github.com/Elloes/hhd-konkr-fit/raw/master/install.sh | bash
 ```
 
-This should work in Ubuntu, Arch, and Fedora. It will break when your system python updates to a new version, so you will need to run the install script again when that happens. This script does not automatically install system dependencies. You should fish what those are based on error messages and by inspecting close issues in this tracker.
+It installs to `~/.local/share/hhd` and is independent of the system package manager. If your system python updates to a new version and something breaks, simply rerun the script. The in-app Update button (see below) also keeps the installation current without rerunning the installer.
 
 Using COPR or AUR, even though the packages are available straight from this repository there, is not recommended. COPR is not because you're more likely to break your system by using it (just rerun the install script after updating Fedora versions), and AUR, because it is going through a hard time.
 
@@ -123,8 +132,8 @@ As far as your locale goes, unless you have a good reason to, skip the territory
 The files can be updated for a new version with the following commands:
 ```bash
 # Prepare dev environment
-git clone https://github.com/hhd-dev/hhd
-cd hhd
+git clone https://github.com/Elloes/hhd-konkr-fit
+cd hhd-konkr-fit
 python -m venv venv
 pip install babel
 pip install -e .
@@ -150,17 +159,17 @@ Either follow `Automatic Install` or `Manual Local Install` to install the base 
 Then, clone, optionally install the userspace rules, and run.
 ```bash
 # Clone Handheld Daemon
-git clone https://github.com/hhd-dev/hhd
-cd hhd
+git clone https://github.com/Elloes/hhd-konkr-fit
+cd hhd-konkr-fit
 python -m venv venv
 source venv/bin/activate
 pip install -e .
 
 # Install udev rules to allow running without sudo (optional)
 # but great for debugging (not all devices will run properly, the rules need to be expanded)
-sudo curl https://raw.githubusercontent.com/hhd-dev/hhd/master/usr/lib/udev/rules.d/83-hhd-user.rules -o /etc/udev/rules.d/83-hhd-user.rules
+sudo curl https://raw.githubusercontent.com/Elloes/hhd-konkr-fit/master/usr/lib/udev/rules.d/83-hhd-user.rules -o /etc/udev/rules.d/83-hhd-user.rules
 # Modprobe uhid to avoid rw errors
-sudo curl https://raw.githubusercontent.com/hhd-dev/hhd/master/usr/lib/modules-load.d/hhd-user.conf -o /etc/modules-load.d/hhd-user.conf
+sudo curl https://raw.githubusercontent.com/Elloes/hhd-konkr-fit/master/usr/lib/modules-load.d/hhd-user.conf -o /etc/modules-load.d/hhd-user.conf
 # You can now run hhd in userspace!
 hhd
 

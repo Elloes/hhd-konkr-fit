@@ -1,6 +1,7 @@
 from threading import Event, Thread
 from typing import Sequence
 
+from hhd.controller.virtual.uinput import KEYBOARD_CAPABILITIES
 from hhd.plugins import (
     Config,
     Context,
@@ -72,7 +73,44 @@ class AyaneoControllersPlugin(HHDPlugin):
 
         if self.dconf.get("face_remap", False):
             children = base["controllers"]["ayaneo"]["children"]
-            children["face_buttons"] = load_relative_yaml("konkr_buttons.yml")
+            konkr = load_relative_yaml("konkr_buttons.yml")
+            # Add raw keyboard keys (e.g. KEY_INSERT) to every button's
+            # dropdown. The values are EV_KEY names so they can be used as
+            # passthrough button codes; the labels are their display names.
+            # The gamepad options from the yml keep priority when a name
+            # collides (there are no collisions today).
+            # B("EV_KEY", 1) is always the EV_KEY input event type, whose
+            # value is 1 regardless of the runtime ecodes table. The list
+            # holds key codes, so reverse them to names via ecodes.keys
+            # (names are "KEY_*"; the label is the name without the prefix).
+            from evdev import ecodes
+
+            code_to_key = {
+                code: name
+                for name, code in ecodes.keys.items()
+                if name.startswith("KEY_")
+            }
+            keyboard_options = {
+                name.replace("KEY_", ""): name
+                for name in (
+                    code_to_key.get(code) for code in KEYBOARD_CAPABILITIES[1]
+                )
+                if name
+            }
+            for name, button in konkr["children"].items():
+                # The rear paddles and LC/RC (btn_rear_* / btn_lc / btn_rc)
+                # only offer paddle/face-button options, so they are skipped
+                # here and keep the yml's own option set.
+                if name in (
+                    "btn_left_top",
+                    "btn_left_select",
+                    "btn_left_start",
+                    "btn_right_top",
+                    "btn_konkr",
+                    "btn_right_bottom",
+                ):
+                    button["options"] = {**keyboard_options, **button["options"]}
+            children["face_buttons"] = konkr
             # The per-button map supersedes the Aya Button Map (swap_guide),
             # so hide it to avoid two conflicting remap UIs.
             children.pop("swap_guide", None)
