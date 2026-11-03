@@ -45,6 +45,12 @@ ok()   { printf '\033[1;32m[hhd-install]\033[0m %s\n' "$*"; }
 warn() { printf '\033[1;33m[hhd-install]\033[0m %s\n' "$*" >&2; }
 die()  { printf '\033[1;31m[hhd-install] ERROR:\033[0m %s\n' "$*" >&2; exit 1; }
 
+# rm_rf <path> — remove a path even if it contains root-owned files
+# (e.g. a previous install that was run as root/sudo).
+rm_rf() {
+    rm -rf "$1" 2>/dev/null || $SUDO rm -rf "$1"
+}
+
 # --------------------------------------------------------------------------
 # Root / privilege handling
 # --------------------------------------------------------------------------
@@ -163,17 +169,21 @@ else
         git -C "$SRC_DIR" fetch --depth 1 origin \
             && git -C "$SRC_DIR" reset --hard FETCH_HEAD
     else
-        rm -rf "$SRC_DIR"
+        rm_rf "$SRC_DIR"
         log "Cloning $FORK_REPO (shallow) to $SRC_DIR"
         git clone --depth 1 "$FORK_REPO" "$SRC_DIR"
     fi
 fi
 
+# Ensure the current user owns the source tree (an older test install may
+# have been done as root), so git/pip/rm below can operate on it.
+$SUDO chown -R "$(id -un):" "$SRC_DIR"
+
 # --------------------------------------------------------------------------
 # Python environment
 # --------------------------------------------------------------------------
 log "Creating virtualenv at $VENV_DIR"
-rm -rf "$VENV_DIR"
+rm_rf "$VENV_DIR"
 python3 -m venv --system-site-packages "$VENV_DIR"
 "$VENV_DIR/bin/pip" install --quiet --upgrade pip
 log "Installing hhd-konkr-fit (hhd + bundled adjustor) into the virtualenv"
