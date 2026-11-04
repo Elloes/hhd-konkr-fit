@@ -1,9 +1,11 @@
 name: Publish to PyPi, AUR, COPR
 
+# Manual-only on purpose: the `hhd` project on PyPI/AUR/COPR is owned by
+# hhd-dev upstream. Triggering this on every fork release fails (trusted
+# publishing not configured here / versions clash with upstream releases).
+# Run it manually from Actions if you actually want to publish.
 on:
   workflow_dispatch:
-  release:
-    types: [published]
 
 permissions:
   contents: read
