@@ -257,7 +257,16 @@ fi
 if command -v systemctl >/dev/null 2>&1; then
     log "Enabling and starting the $SERVICE_NAME service"
     $SUDO systemctl daemon-reload
+    # `systemctl start` is a no-op for a unit that is already active — on a
+    # re-install/update the previous daemon process would keep running the
+    # old code and keep holding the API port. Restart it in that case.
+    already_active=0
+    $SUDO systemctl is-active --quiet "$SERVICE_NAME" && already_active=1
     $SUDO systemctl enable --now "$SERVICE_NAME"
+    if [ "$already_active" = "1" ]; then
+        log "Restarting $SERVICE_NAME so it runs the newly installed code"
+        $SUDO systemctl restart "$SERVICE_NAME" || warn "Restarting $SERVICE_NAME failed; reboot to be safe."
+    fi
 else
     warn "systemd not found — run '$VENV_DIR/bin/hhd --user $(id -un)' manually."
 fi
