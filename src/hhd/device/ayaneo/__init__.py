@@ -95,7 +95,15 @@ class AyaneoControllersPlugin(HHDPlugin):
                     "btn_konkr",
                     "btn_right_bottom",
                 ):
-                    button["options"] = {**button["options"], **KONKR_KEY_OPTIONS}
+                    # The "hhd.section:Gamepad" header is UI-only: it labels
+                    # the native gamepad/overlay actions so the UI can render
+                    # the whole list as per-section submenus (one row per
+                    # section: Gamepad, Alphabet, Numbers, ...).
+                    button["options"] = {
+                        "hhd.section:Gamepad": "Gamepad",
+                        **button["options"],
+                        **KONKR_KEY_OPTIONS,
+                    }
             children["face_buttons"] = konkr
             # The per-button map supersedes the Aya Button Map (swap_guide),
             # so hide it to avoid two conflicting remap UIs.
