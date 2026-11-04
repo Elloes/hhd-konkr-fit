@@ -84,14 +84,15 @@ class AyaneoControllersPlugin(HHDPlugin):
             # collides (there are no collisions today).
             # B("EV_KEY", 1) is always the EV_KEY input event type, whose
             # value is 1 regardless of the runtime ecodes table. The list
-            # holds key codes, so reverse them to names via ecodes.keys
-            # (names are "KEY_*"; the label is the name without the prefix).
+            # holds key codes; ecodes.keys already maps code -> name, so
+            # just filter to the "KEY_*" entries (the label is the name
+            # without the prefix).
             from evdev import ecodes
 
             code_to_key = {
                 code: name
-                for name, code in ecodes.keys.items()
-                if name.startswith("KEY_")
+                for code, name in ecodes.keys.items()
+                if isinstance(name, str) and name.startswith("KEY_")
             }
             keyboard_options = {
                 name.replace("KEY_", ""): name
