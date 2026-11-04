@@ -24,8 +24,8 @@
 #                   (default: https://github.com/Elloes/hhd-konkr-fit)
 #   HHD_FORK_SRC    Use an existing local checkout of the fork instead of
 #                   cloning (must contain pyproject.toml and src/hhd).
-#   HHD_KEEP_DISTRO_HHD  set to "1" to NOT stop/disable a distro-provided
-#                   `hhd@` service (Anatase).
+#   HHD_KEEP_DISTRO_HHD  set to "1" to NOT stop/disable the distro-provided
+#                   `hhd` / `hhd@` service (Anatase).
 
 set -Eeuo pipefail
 
@@ -191,6 +191,12 @@ python3 -m venv --system-site-packages "$VENV_DIR"
 "$VENV_DIR/bin/pip" install --quiet --upgrade pip
 log "Installing hhd-konkr-fit (hhd + bundled adjustor) into the virtualenv"
 "$VENV_DIR/bin/pip" install --quiet --upgrade "$SRC_DIR"
+# A partial pip failure leaves a venv dir behind (possibly with a missing or
+# unexecutable bin/hhd). Fail loudly instead of letting systemd enter a
+# "Permission denied / status=203/EXEC" restart loop for the service.
+[ -x "$VENV_DIR/bin/hhd" ] \
+    || die "venv/bin/hhd is missing or not executable - the venv at $VENV_DIR is corrupt. Remove it (rm -rf $INSTALL_DIR) and re-run the installer."
+
 
 # --------------------------------------------------------------------------
 # udev rules, hwdb and systemd service (bundled in the fork — self-hosted)
@@ -230,11 +236,14 @@ ui_url=$(curl -fsSL "$UI_RELEASES_API" | grep "browser_download_url" | cut -d '"
 # --------------------------------------------------------------------------
 if [ "${HHD_KEEP_DISTRO_HHD:-0}" != "1" ]; then
     if command -v systemctl >/dev/null 2>&1 \
-        && $SUDO systemctl list-unit-files 2>/dev/null | grep -q "^hhd@"; then
+        && $SUDO systemctl list-unit-files 2>/dev/null | grep -qE "^hhd(@|\.service)\b"; then
         case "$OS_ID" in
             *anatase*) warn "Anatase OS detected: distro Handheld Daemon is preinstalled." ;;
         esac
-        log "Stopping/disabling the distro-provided hhd@ service to avoid conflicts"
+        # Matches both the per-user template unit (hhd@) and a system-wide
+        # plain hhd.service (running as root, e.g. Anatase) - either one
+        # would otherwise respawn on reboot and fight us for port 5335.
+        log "Stopping/disabling the distro-provided hhd / hhd@ services to avoid conflicts"
         $SUDO systemctl disable --now "hhd@$(id -un)" 2>/dev/null || true
         $SUDO systemctl disable --now "hhd" 2>/dev/null || true
     fi
