@@ -1309,8 +1309,20 @@ class Multiplexer:
                         # keyboard when Steam is running, falling back to the
                         # system input method (fcitx/ibus) otherwise.
                         if ev["value"]:
+                            logger.info(
+                                "Virtual keyboard requested (virtual_kbd)."
+                            )
                             if not self.open_steam_kbd(True):
-                                self.open_linux_kbd(True)
+                                if not self.open_linux_kbd(True):
+                                    logger.warning(
+                                        "Could not show the virtual "
+                                        "keyboard: Steam keyboard was "
+                                        "unavailable and no fcitx5/ibus "
+                                        "input method responded. Open the "
+                                        "game inside Steam (Steam keyboard) "
+                                        "or install/configure fcitx5 (system "
+                                        "keyboard)."
+                                    )
                         ev["code"] = ""  # type: ignore
 
                     if ev["code"] == "touchpad_right":
