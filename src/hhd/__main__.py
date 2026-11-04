@@ -824,14 +824,22 @@ def main():
                                         )
 
                                 out_fn = expanduser("~/.local/bin/hhd-ui", ctx)
-                                urllib.request.urlretrieve(
-                                    asset["browser_download_url"],
-                                    out_fn,
-                                    reporthook=progress,
-                                )
-
-                                st = os.stat(out_fn)
-                                os.chmod(out_fn, st.st_mode | stat.S_IEXEC)
+                                # Download to a side file and rename into
+                                # place: overwriting a running AppImage in
+                                # place fails with ETXTBSY (Text file busy).
+                                tmp_fn = out_fn + ".new"
+                                try:
+                                    urllib.request.urlretrieve(
+                                        asset["browser_download_url"],
+                                        tmp_fn,
+                                        reporthook=progress,
+                                    )
+                                    st = os.stat(tmp_fn)
+                                    os.chmod(tmp_fn, st.st_mode | stat.S_IEXEC)
+                                    os.replace(tmp_fn, out_fn)
+                                finally:
+                                    if os.path.exists(tmp_fn):
+                                        os.unlink(tmp_fn)
                                 break
 
                         # Set updated

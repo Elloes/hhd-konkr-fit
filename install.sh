@@ -220,9 +220,10 @@ log "Downloading the hhd-ui gamescope overlay"
 ui_url=$(curl -fsSL "$UI_RELEASES_API" | grep "browser_download_url" | cut -d '"' -f 4 \
     | grep "hhd-ui.AppImage" | head -n1)
 [ -n "$ui_url" ] \
-    && curl -fsSL -o "$BIN_LINK_DIR/hhd-ui" "$ui_url" \
-    && chmod +x "$BIN_LINK_DIR/hhd-ui" \
-    || warn "Could not download the hhd-ui overlay (non-fatal — you can grab it later from the hhd-dev/hhd-ui releases)."
+    && curl -fsSL -o "$BIN_LINK_DIR/hhd-ui.new" "$ui_url" \
+    && chmod +x "$BIN_LINK_DIR/hhd-ui.new" \
+    && mv -f "$BIN_LINK_DIR/hhd-ui.new" "$BIN_LINK_DIR/hhd-ui" \
+    || { rm -f "$BIN_LINK_DIR/hhd-ui.new"; warn "Could not download the hhd-ui overlay (non-fatal — you can grab it later from the hhd-dev/hhd-ui releases)."; }
 
 # --------------------------------------------------------------------------
 # Distro-provided hhd (Anatase preinstalls Handheld Daemon)
