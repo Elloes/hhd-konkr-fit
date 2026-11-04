@@ -122,6 +122,70 @@ def print_token(ctx):
         logger.error(f"Token not found or could not be read, error:\n{e}")
 
 
+def _own_systemd_unit() -> str | None:
+    """Return the name of the systemd unit running this process, or None.
+
+    Works for both cgroup v1 ("N:ctrl:/system.slice/foo.service") and
+    cgroup v2 ("0::/system.slice/foo.service") /proc/self/cgroup lines.
+    """
+    try:
+        with open("/proc/self/cgroup") as f:
+            for line in f:
+                path = line.strip().rsplit(":", 2)[-1].rstrip("/")
+                unit = path.rsplit("/", 1)[-1]
+                if unit.endswith(".service"):
+                    return unit
+    except Exception:
+        pass
+    return None
+
+
+def _prepare_systemd_restart(ctx) -> None:
+    """Make the post-update service restart reliable.
+
+    After an in-app update the daemon exits with a non-zero code and relies
+    on systemd's Restart=on-failure to bring it back up. That previously
+    failed silently for two reasons, both of which left the service in a
+    dead/failed state that needed manual `systemctl` commands to fix:
+      * previous crashes (e.g. a failed update) put the unit in
+        start-limit-hit state, so it no longer auto-restarted;
+      * distro-provided hhd / hhd@ services (e.g. the Anatase preinstall)
+        kept the API port (5335), so every restart crashed with
+        EADDRINUSE until they were stopped by hand.
+    Reproduce what install.sh does (minus reinstallation) so "Update"
+    works without any command-line involvement. Must be called with root
+    privileges (see switch_priviledge(0) in the update path).
+    """
+    if ctx is None:
+        return
+    unit = _own_systemd_unit()
+    if not unit:
+        # Not running under systemd (e.g. launched manually); nothing to do.
+        return
+    try:
+        # Stop/disable every other hhd service that could steal the API
+        # port on our restart. The set covers the fork service
+        # (hhd_local@), the upstream per-user template (hhd@) and the
+        # system-wide unit (hhd, e.g. the Anatase preinstall).
+        for other in ("hhd", f"hhd@{ctx.name}", f"hhd_local@{ctx.name}"):
+            if other != unit:
+                subprocess.run(
+                    ["systemctl", "disable", "--now", other],
+                    check=False,
+                    capture_output=True,
+                )
+        # Clear accumulated start-failure counters so Restart=on-failure
+        # works even if this unit crashed repeatedly in the past.
+        subprocess.run(
+            ["systemctl", "reset-failed", unit],
+            check=False,
+            capture_output=True,
+        )
+        logger.info(f"Prepared systemd for post-update restart (unit: {unit}).")
+    except Exception as e:
+        logger.warning(f"Could not prepare systemd for the post-update restart:\n{e}")
+
+
 def main():
     parser = argparse.ArgumentParser(
         prog="HHD: Handheld Daemon main interface.",
@@ -855,6 +919,10 @@ def main():
                 switch_priviledge(0)
 
                 if updated:
+                    # Still root: stop competing hhd services and clear
+                    # systemd's start-failure counters so the restart
+                    # triggered by the exit below always succeeds.
+                    _prepare_systemd_restart(ctx)
                     should_exit.set()
 
             # Wait for events
