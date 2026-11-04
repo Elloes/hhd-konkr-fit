@@ -29,8 +29,9 @@ GIT_HHD = f"git+https://github.com/{FORK_REPO}"
 # settings next to the fork version.
 UPSTREAM_HHD_VERSION = "4.1.12"
 HHD_RELEASES_API = f"https://api.github.com/repos/{FORK_REPO}/releases/latest"
-# The gamescope overlay UI is a separate project, still published upstream.
-HHD_UI_RELEASES_API = "https://api.github.com/repos/hhd-dev/hhd-ui/releases/latest"
+# The gamescope overlay UI is a separate project, published from the
+# hhd-konkr-fit fork of hhd-ui (Konkr Fit section headers + scroll fixes).
+HHD_UI_RELEASES_API = "https://api.github.com/repos/Elloes/hhd-ui/releases/latest"
 HHD_DEV_DIR = "/run/hhd/dev"
 
 
