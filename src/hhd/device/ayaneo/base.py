@@ -521,8 +521,14 @@ def controller_loop(
     def remap_action(key: str, default: str):
         # Resolve a Konkr Button Map dropdown into an output Button. The UI
         # "disabled" option is returned as None so the key gets dropped.
+        # "hhd.section:*" entries are UI-only dropdown section headers; treat
+        # them as disabled in case one was saved by an unpatched hhd-ui.
         val = conf.get(f"face_buttons.{key}", default)
-        return None if val == "disabled" else val
+        return (
+            None
+            if val == "disabled" or val.startswith("hhd.section:")
+            else val
+        )
 
     # By default the gamepad's BTN_MODE is repurposed as the QAM/overlay
     # button (share). On devices where it is the main "guide" button (e.g.

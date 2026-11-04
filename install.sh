@@ -33,7 +33,10 @@ set -Eeuo pipefail
 # Constants
 # --------------------------------------------------------------------------
 FORK_REPO="${HHD_FORK_REPO:-https://github.com/Elloes/hhd-konkr-fit}"
-UI_RELEASES_API="https://api.github.com/repos/hhd-dev/hhd-ui/releases/latest"
+# Overridable so the fork's own hhd-ui AppImage release (with the Konkr
+# section headers and scroll fixes) can be used:
+#   HHD_UI_RELEASES_API=https://api.github.com/repos/<user>/hhd-ui/releases/latest ./install.sh
+UI_RELEASES_API="${HHD_UI_RELEASES_API:-https://api.github.com/repos/hhd-dev/hhd-ui/releases/latest}"
 INSTALL_DIR="$HOME/.local/share/hhd"
 SRC_DIR="$INSTALL_DIR/src"
 VENV_DIR="$INSTALL_DIR/venv"

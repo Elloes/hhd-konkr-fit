@@ -2,7 +2,6 @@ import logging
 from threading import Event, Thread
 from typing import Sequence
 
-from hhd.controller.virtual.uinput import KEYBOARD_CAPABILITIES
 from hhd.plugins import (
     Config,
     Context,
@@ -14,7 +13,7 @@ from hhd.plugins import (
 )
 from hhd.plugins.settings import HHDSettings
 
-from .const import CONFS, DEFAULT_MAPPINGS
+from .const import CONFS, DEFAULT_MAPPINGS, KONKR_KEY_OPTIONS
 
 logger = logging.getLogger(__name__)
 
@@ -77,30 +76,13 @@ class AyaneoControllersPlugin(HHDPlugin):
         if self.dconf.get("face_remap", False):
             children = base["controllers"]["ayaneo"]["children"]
             konkr = load_relative_yaml("konkr_buttons.yml")
-            # Add raw keyboard keys (e.g. KEY_INSERT) to every button's
-            # dropdown. The values are EV_KEY names so they can be used as
-            # passthrough button codes; the labels are their display names.
-            # The gamepad options from the yml keep priority when a name
-            # collides (there are no collisions today).
-            # B("EV_KEY", 1) is always the EV_KEY input event type, whose
-            # value is 1 regardless of the runtime ecodes table. The list
-            # holds key codes; ecodes.keys already maps code -> name, so
-            # just filter to the "KEY_*" entries (the label is the name
-            # without the prefix).
-            from evdev import ecodes
-
-            code_to_key = {
-                code: name
-                for code, name in ecodes.keys.items()
-                if isinstance(name, str) and name.startswith("KEY_")
-            }
-            keyboard_options = {
-                name.replace("KEY_", ""): name
-                for name in (
-                    code_to_key.get(code) for code in KEYBOARD_CAPABILITIES[1]
-                )
-                if name
-            }
+            # Add the curated keyboard-key passthrough options (e.g.
+            # KEY_INSERT -> "Insert") to the six face buttons' dropdowns.
+            # The values are EV_KEY names so they can be used directly as
+            # passthrough button codes; the "hhd.section:" entries are
+            # UI-only section headers for the patched hhd-ui. The keyboard
+            # options are appended after the yml's own gamepad options, so
+            # the native mappings stay at the top of the dropdown.
             for name, button in konkr["children"].items():
                 # The rear paddles and LC/RC (btn_rear_* / btn_lc / btn_rc)
                 # only offer paddle/face-button options, so they are skipped
@@ -113,7 +95,7 @@ class AyaneoControllersPlugin(HHDPlugin):
                     "btn_konkr",
                     "btn_right_bottom",
                 ):
-                    button["options"] = {**keyboard_options, **button["options"]}
+                    button["options"] = {**button["options"], **KONKR_KEY_OPTIONS}
             children["face_buttons"] = konkr
             # The per-button map supersedes the Aya Button Map (swap_guide),
             # so hide it to avoid two conflicting remap UIs.

@@ -60,13 +60,18 @@ children:
 
   # The rear paddles and LC/RC come through the composite keyboard (KEY_L/KEY_R
   # and F21/F22). By default they stay the back paddles (extra_l1..r2); the
-  # face-button options let them act as A/B/X/Y. These buttons intentionally do
-  # NOT get the raw keyboard-key options the six face buttons get.
+  # face-button options let them act as A/B/X/Y, and "Virtual Keyboard" lets
+  # them toggle the virtual keyboard. They intentionally do NOT get the raw
+  # keyboard-key options the six face buttons get.
   btn_rear_left:
     type: multiple
     title: Rear Left Paddle
     options: &extra_btn_options
       disabled: Disabled
+      # Show/hide the virtual keyboard (works through the same event path as
+      # the six face buttons; see the "virtual_kbd" handler in the controller
+      # base loop).
+      virtual_kbd: Virtual Keyboard
       extra_l1: Left Back 1
       extra_l2: Left Back 2
       extra_r1: Right Back 1
