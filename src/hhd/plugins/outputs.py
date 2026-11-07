@@ -23,7 +23,7 @@ from ..controller.virtual.uinput import (
     XBOX_ELITE_BUTTON_MAP,
     UInputDevice,
 )
-from .plugin import is_steam_gamepad_running, open_steam_kbd
+from .plugin import is_steam_gamepad_running, open_linux_kbd, open_steam_kbd
 from .utils import load_relative_yaml
 
 logger = logging.getLogger(__name__)
@@ -280,6 +280,7 @@ def get_outputs(
             "steam_check": steam_check,
             "steam_check_fn": lambda: is_steam_gamepad_running(),
             "steam_kbd": lambda open: open_steam_kbd(open),
+            "linux_kbd": lambda open: open_linux_kbd(open),
             "nintendo_qam": nintendo_qam,
             "uses_motion": motion,
             "uses_dual_motion": dual_motion,

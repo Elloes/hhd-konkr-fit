@@ -1,0 +1,101 @@
+type: container
+tags: [non-essential]
+title: Konkr Button Map
+hint: >-
+  Remap the six system/face buttons unique to the Konkr Fit, plus the two
+  rear paddles and the two inner LC/RC buttons (the latter four can also act
+  as controller face buttons). The sticks and triggers stay remappable
+  through Steam Input as usual.
+
+children:
+  btn_left_top:
+    type: multiple
+    title: Left Top
+    # Action values/labels mirror src/hhd/plugins/overlay/shortcuts.yml so the
+    # Konkr map uses HHD's official vocabulary. `mode`/`select`/`start` are the
+    # plain gamepad buttons; the rest are overlay/Steam shortcut actions.
+    # `virtual_kbd` opens the Steam keyboard, or the system keyboard when
+    # Steam is not running.
+    options: &konkr_btn_options
+      disabled: Disabled
+      mode: Steam / Guide
+      select: Select (View)
+      start: Start (Menu)
+      steam_qam: Steam Side Menu
+      steam_expanded: Steam Overlay
+      hhd_qam: HHD Side Menu
+      hhd_expanded: HHD Overlay
+      virtual_kbd: Virtual Keyboard
+    default: mode
+
+  btn_left_select:
+    type: multiple
+    title: Left Bottom-Left
+    options: *konkr_btn_options
+    default: select
+
+  btn_left_start:
+    type: multiple
+    title: Left Bottom-Right
+    options: *konkr_btn_options
+    default: start
+
+  btn_right_top:
+    type: multiple
+    title: Right Top
+    options: *konkr_btn_options
+    default: disabled
+
+  btn_konkr:
+    type: multiple
+    title: Konkr (Right Bottom-Left)
+    options: *konkr_btn_options
+    default: disabled
+
+  btn_right_bottom:
+    type: multiple
+    title: Right Bottom-Right
+    options: *konkr_btn_options
+    default: hhd_qam
+
+  # The rear paddles and LC/RC come through the composite keyboard (KEY_L/KEY_R
+  # and F21/F22). By default they stay the back paddles (extra_l1..r2); the
+  # face-button options let them act as A/B/X/Y, and "Virtual Keyboard" lets
+  # them toggle the virtual keyboard. They intentionally do NOT get the raw
+  # keyboard-key options the six face buttons get.
+  btn_rear_left:
+    type: multiple
+    title: Rear Left Paddle
+    options: &extra_btn_options
+      disabled: Disabled
+      # Show/hide the virtual keyboard (works through the same event path as
+      # the six face buttons; see the "virtual_kbd" handler in the controller
+      # base loop).
+      virtual_kbd: Virtual Keyboard
+      extra_l1: Left Back 1
+      extra_l2: Left Back 2
+      extra_r1: Right Back 1
+      extra_r2: Right Back 2
+      a: A (bottom)
+      b: B (right)
+      x: X (left)
+      y: Y (top)
+    default: extra_l1
+
+  btn_lc:
+    type: multiple
+    title: Left Inner (LC)
+    options: *extra_btn_options
+    default: extra_l2
+
+  btn_rear_right:
+    type: multiple
+    title: Rear Right Paddle
+    options: *extra_btn_options
+    default: extra_r1
+
+  btn_rc:
+    type: multiple
+    title: Right Inner (RC)
+    options: *extra_btn_options
+    default: extra_r2

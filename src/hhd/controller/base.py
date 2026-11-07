@@ -668,6 +668,7 @@ class Multiplexer:
         self.steam_check_fn = params.get("steam_check_fn", None)
         self.nintendo_qam = params.get("nintendo_qam", False)
         self.open_steam_kbd = params.get("steam_kbd", lambda open: False)
+        self.open_linux_kbd = params.get("linux_kbd", lambda open: False)
 
         self.unique = str(time.perf_counter_ns())
         assert touchpad is None, "touchpad rewiring not supported yet"
@@ -1271,6 +1272,58 @@ class Multiplexer:
                         ev["code"] = ""
                         if self.emit:
                             self.emit({"type": "special", "event": "overlay"})
+
+                    if ev["code"] in ("hhd_qam", "hhd_expanded"):
+                        # Direct binds for the HHD side menu (QAM) and the
+                        # expanded HHD overlay, used by per-button remaps.
+                        # Action names match shortcuts.yml. Emitted straight
+                        # away so they bypass the multi-tap QAM state machine.
+                        # "overlay" -> open_qam (side menu), "qam_triple" ->
+                        # open_expanded (full overlay).
+                        if ev["value"] and self.emit:
+                            self.emit(
+                                {
+                                    "type": "special",
+                                    "event": (
+                                        "overlay"
+                                        if ev["code"] == "hhd_qam"
+                                        else "qam_triple"
+                                    ),
+                                }
+                            )
+                        ev["code"] = ""  # type: ignore
+
+                    if ev["code"] in ("steam_qam", "steam_expanded"):
+                        # Open Steam's own QAM / expanded menu via the same
+                        # path Steam Deck uses. Handled at the end of process()
+                        # so it respects intercept and the chord fallbacks.
+                        if ev["value"]:
+                            if ev["code"] == "steam_qam":
+                                send_steam_qam = True
+                            else:
+                                send_steam_expand = True
+                        ev["code"] = ""  # type: ignore
+
+                    if ev["code"] == "virtual_kbd":
+                        # Show the best available virtual keyboard: the Steam
+                        # keyboard when Steam is running, falling back to the
+                        # system input method (fcitx/ibus) otherwise.
+                        if ev["value"]:
+                            logger.info(
+                                "Virtual keyboard requested (virtual_kbd)."
+                            )
+                            if not self.open_steam_kbd(True):
+                                if not self.open_linux_kbd(True):
+                                    logger.warning(
+                                        "Could not show the virtual "
+                                        "keyboard: Steam keyboard was "
+                                        "unavailable and no fcitx5/ibus "
+                                        "input method responded. Open the "
+                                        "game inside Steam (Steam keyboard) "
+                                        "or install/configure fcitx5 (system "
+                                        "keyboard)."
+                                    )
+                        ev["code"] = ""  # type: ignore
 
                     if ev["code"] == "touchpad_right":
                         match self.touchpad_right:

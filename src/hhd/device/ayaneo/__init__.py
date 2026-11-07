@@ -1,3 +1,4 @@
+import logging
 from threading import Event, Thread
 from typing import Sequence
 
@@ -12,7 +13,9 @@ from hhd.plugins import (
 )
 from hhd.plugins.settings import HHDSettings
 
-from .const import CONFS, DEFAULT_MAPPINGS
+from .const import CONFS, DEFAULT_MAPPINGS, KONKR_KEY_OPTIONS
+
+logger = logging.getLogger(__name__)
 
 
 class AyaneoControllersPlugin(HHDPlugin):
@@ -69,6 +72,42 @@ class AyaneoControllersPlugin(HHDPlugin):
                 noob_default=False,
             )
         )
+
+        if self.dconf.get("face_remap", False):
+            children = base["controllers"]["ayaneo"]["children"]
+            konkr = load_relative_yaml("konkr_buttons.yml")
+            # Add the curated keyboard-key passthrough options (e.g.
+            # KEY_INSERT -> "Insert") to the six face buttons' dropdowns.
+            # The values are EV_KEY names so they can be used directly as
+            # passthrough button codes; the "hhd.section:" entries are
+            # UI-only section headers for the patched hhd-ui. The keyboard
+            # options are appended after the yml's own gamepad options, so
+            # the native mappings stay at the top of the dropdown.
+            for name, button in konkr["children"].items():
+                # The rear paddles and LC/RC (btn_rear_* / btn_lc / btn_rc)
+                # only offer paddle/face-button options, so they are skipped
+                # here and keep the yml's own option set.
+                if name in (
+                    "btn_left_top",
+                    "btn_left_select",
+                    "btn_left_start",
+                    "btn_right_top",
+                    "btn_konkr",
+                    "btn_right_bottom",
+                ):
+                    # The "hhd.section:Gamepad" header is UI-only: it labels
+                    # the native gamepad/overlay actions so the UI can render
+                    # the whole list as per-section submenus (one row per
+                    # section: Gamepad, Alphabet, Numbers, ...).
+                    button["options"] = {
+                        "hhd.section:Gamepad": "Gamepad",
+                        **button["options"],
+                        **KONKR_KEY_OPTIONS,
+                    }
+            children["face_buttons"] = konkr
+            # The per-button map supersedes the Aya Button Map (swap_guide),
+            # so hide it to avoid two conflicting remap UIs.
+            children.pop("swap_guide", None)
 
         if self.dconf.get("display_gyro", True):
             base["controllers"]["ayaneo"]["children"]["imu_axis"] = get_gyro_config(
@@ -173,7 +212,29 @@ def autodetect(existing: Sequence[HHDPlugin]) -> Sequence[HHDPlugin]:
         dmi = f.read().strip()
 
     dconf = CONFS.get(dmi, None)
-    if dconf:
-        return [AyaneoControllersPlugin(dmi, dconf)]
+    matched = dmi
+    if dconf is None:
+        # Some firmware builds report the DMI product name with slightly
+        # different spelling (e.g. zero vs. letter O, or extra prefixes in
+        # the Konkr Fit name). Fall back to case-insensitive, 0/O-equivalent
+        # matching, with a "KONKR" substring match for the Konkr Fit.
+        def norm(s: str) -> str:
+            return s.upper().replace("0", "O")
 
+        ndmi = norm(dmi)
+        for name, conf in CONFS.items():
+            nname = norm(name)
+            if ndmi == nname or (nname == "KONKR FIT" and nname in ndmi):
+                logger.warning(
+                    f"DMI product name '{dmi}' matched device '{name}' "
+                    f"via fuzzy matching."
+                )
+                dconf = conf
+                matched = name
+                break
+
+    if dconf:
+        return [AyaneoControllersPlugin(matched, dconf)]
+
+    logger.warning(f"No AYANEO device found for DMI product name '{dmi}'.")
     return []

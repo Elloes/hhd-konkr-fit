@@ -17,7 +17,21 @@ AYA3_BTN_MAPPINGS = {
     B("KEY_F22"): "extra_r2",
     B("KEY_L"): "extra_l1",
     B("KEY_R"): "extra_r1",
-    B("KEY_F23"): "mode",  # KONKR FIT guide button on the USB keyboard
+}
+
+# Konkr Fit (Ayaneo sub-brand). Same composite keyboard as AYANEO 3
+# (1c4f:0002) but a different physical button layout.
+# F23 is the konkr logo button (right-bottom-left); the right-top button
+# emits F23 with Ctrl held (handled by ChordGamepadEvdev). KEY_D is the
+# right-bottom-right button and is user-remappable via konkr_buttons.yml.
+KONKR_FIT_BTN_MAPPINGS = {
+    B("KEY_F24"): "keyboard",
+    B("KEY_D"): "share",
+    B("KEY_F21"): "extra_l2",
+    B("KEY_F22"): "extra_r2",
+    B("KEY_L"): "extra_l1",
+    B("KEY_R"): "extra_r1",
+    B("KEY_F23"): "mode",
 }
 
 # Physical button assignments reported for NEXT 2; the device log has no key trace.
@@ -75,7 +89,17 @@ CONFS = {
         "extra_buttons": "quad",
         "magic_modules": False,
         "rgb": True,
-        "btn_mapping": AYA3_BTN_MAPPINGS,
+        # Konkr (Ayaneo sub-brand). Same controller hw as AYANEO 3
+        # (1c4f:0002 composite + 045e:028e gamepad) but no detachable
+        # modules (no ayaneo-ec EC interface). Four extra buttons (two rear
+        # paddles + LC/RC) and BTN_MODE is the main button, so it acts as the
+        # guide/Steam button rather than the QAM/overlay button.
+        "mode_is_guide": True,
+        # Expose per-button remap dropdowns for the six system/face buttons
+        # (handled in base.py + konkr_buttons.yml). Gated so it never touches
+        # the gamepad BTN_MODE/SELECT/START on other AYANEO devices.
+        "face_remap": True,
+        "btn_mapping": KONKR_FIT_BTN_MAPPINGS,
         "at_btn_mapping": KONKR_FIT_AT_BTN_MAPPINGS,
         **AYA_DEFAULT_CONF,
     },
@@ -236,3 +260,102 @@ def get_cfg_commands(
         0x64,
     ]
     return [calculate_checksum_inplace(cmd)]
+
+
+# Curated, user-friendly option list for the Konkr Button Map keyboard
+# passthrough (see konkr_buttons.yml / AyaneoKonkr.settings()).
+#
+# Values are EV_KEY names so they can be used directly as passthrough button
+# codes (base.py relies on `act.startswith("KEY_")` and
+# `EC(act) in KEYBOARD_CAPABILITIES`). Labels are friendly display names.
+#
+# Keys of the form "hhd.section:<Group>" are UI-only entries: the patched
+# hhd-ui renders them as section headers in the dropdown and never selects
+# them. remap_action() in base.py treats them as "disabled" in case an
+# unpatched UI saved one anyway.
+#
+# Every key here is part of the virtual keyboard capability set
+# (KEYBOARD_CAPABILITIES in hhd.controller.virtual.uinput).
+KONKR_KEY_OPTIONS = {
+    "hhd.section:Alphabet": "Alphabet",
+    "KEY_A": "A",
+    "KEY_B": "B",
+    "KEY_C": "C",
+    "KEY_D": "D",
+    "KEY_E": "E",
+    "KEY_F": "F",
+    "KEY_G": "G",
+    "KEY_H": "H",
+    "KEY_I": "I",
+    "KEY_J": "J",
+    "KEY_K": "K",
+    "KEY_L": "L",
+    "KEY_M": "M",
+    "KEY_N": "N",
+    "KEY_O": "O",
+    "KEY_P": "P",
+    "KEY_Q": "Q",
+    "KEY_R": "R",
+    "KEY_S": "S",
+    "KEY_T": "T",
+    "KEY_U": "U",
+    "KEY_V": "V",
+    "KEY_W": "W",
+    "KEY_X": "X",
+    "KEY_Y": "Y",
+    "KEY_Z": "Z",
+    "hhd.section:Numbers": "Numbers",
+    "KEY_1": "1",
+    "KEY_2": "2",
+    "KEY_3": "3",
+    "KEY_4": "4",
+    "KEY_5": "5",
+    "KEY_6": "6",
+    "KEY_7": "7",
+    "KEY_8": "8",
+    "KEY_9": "9",
+    "KEY_0": "0",
+    "hhd.section:Function Keys": "Function Keys",
+    "KEY_F1": "F1",
+    "KEY_F2": "F2",
+    "KEY_F3": "F3",
+    "KEY_F4": "F4",
+    "KEY_F5": "F5",
+    "KEY_F6": "F6",
+    "KEY_F7": "F7",
+    "KEY_F8": "F8",
+    "KEY_F9": "F9",
+    "KEY_F10": "F10",
+    "KEY_F11": "F11",
+    "KEY_F12": "F12",
+    "hhd.section:Navigation": "Navigation",
+    "KEY_ESC": "Esc",
+    "KEY_TAB": "Tab",
+    "KEY_ENTER": "Enter",
+    "KEY_BACKSPACE": "Backspace",
+    "KEY_SPACE": "Space",
+    "KEY_DELETE": "Delete",
+    "KEY_INSERT": "Insert",
+    "KEY_HOME": "Home",
+    "KEY_END": "End",
+    "KEY_PAGEUP": "Page Up",
+    "KEY_PAGEDOWN": "Page Down",
+    "KEY_UP": "Arrow Up",
+    "KEY_DOWN": "Arrow Down",
+    "KEY_LEFT": "Arrow Left",
+    "KEY_RIGHT": "Arrow Right",
+    "hhd.section:Modifiers": "Modifiers",
+    "KEY_LEFTSHIFT": "Left Shift",
+    "KEY_RIGHTSHIFT": "Right Shift",
+    "KEY_LEFTCTRL": "Left Ctrl",
+    "KEY_RIGHTCTRL": "Right Ctrl",
+    "KEY_LEFTALT": "Left Alt",
+    "KEY_RIGHTALT": "Right Alt",
+    "KEY_LEFTMETA": "Left Win",
+    "KEY_RIGHTMETA": "Right Win",
+    "hhd.section:System": "System",
+    "KEY_CAPSLOCK": "Caps Lock",
+    "KEY_NUMLOCK": "Num Lock",
+    "KEY_SCROLLLOCK": "Scroll Lock",
+    "KEY_PAUSE": "Pause",
+}

@@ -453,6 +453,85 @@ def open_steam_kbd(open: bool = True):
     return run_steam_command(f"steam://{'open' if open else 'close'}/keyboard")
 
 
+def get_session_user() -> tuple[int, int] | None:
+    """Return the (uid, gid) of the first active login session, or None."""
+    try:
+        result = subprocess.run(
+            ["loginctl", "list-sessions", "--no-legend"],
+            capture_output=True,
+            text=True,
+            check=True,
+        )
+        for line in result.stdout.splitlines():
+            parts = line.split()
+            if len(parts) < 2 or parts[1] in ("-", ""):
+                continue
+            uid = int(
+                subprocess.run(
+                    ["id", "-u", parts[1]],
+                    capture_output=True,
+                    text=True,
+                    check=True,
+                ).stdout
+            )
+            return uid, get_gid(uid)
+    except Exception:
+        pass
+    return None
+
+
+def open_linux_kbd(open: bool = True) -> bool:
+    """Show or hide the desktop's input method (fcitx/ibus) panel.
+
+    Used as a fallback when the Steam keyboard is not available (Steam
+    not running). Returns True when an IME handled the request.
+    """
+    if (session := get_session_user()) is None:
+        logger.error("No login session found to show the keyboard in.")
+        return False
+    uid, gid = session
+    try:
+        env = get_user_systemd_environment(uid, gid)
+    except Exception as e:
+        logger.error(f"Could not read session environment: {e}")
+        return False
+
+    # fcitx5, legacy fcitx and ibus in order; the first one that succeeds wins.
+    flag = "o" if open else "c"
+    candidates = [
+        ["fcitx5-remote", flag],
+        ["fcitx-remote", flag],
+        [
+            "busctl",
+            "--user",
+            "call",
+            "org.freedesktop.IBus",
+            "/org/freedesktop/IBus",
+            "org.freedesktop.IBus",
+            "Toggle",
+            "b",
+            "true" if open else "false",
+        ],
+    ]
+    for cmd in candidates:
+        try:
+            subprocess.run(
+                cmd,
+                check=True,
+                capture_output=True,
+                user=uid,
+                group=gid,
+                env=env,
+            )
+        except (subprocess.CalledProcessError, FileNotFoundError, OSError) as e:
+            logger.debug(f"Could not show keyboard with `{cmd[0]}`: {e}")
+            continue
+        logger.info(f"{'Showed' if open else 'Hid'} system keyboard via {cmd[0]}.")
+        return True
+    logger.warning("No input method (fcitx/ibus) found to show the keyboard.")
+    return False
+
+
 def freeze_steam(freeze: bool):
     pid = None
     try:
